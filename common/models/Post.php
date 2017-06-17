@@ -22,6 +22,13 @@ use Yii;
  */
 class Post extends \yii\db\ActiveRecord
 {
+	/**
+	 * 声明一个私有变量用来保存更新前标签数据
+	 * @var unknown
+	 */
+	private $_oldTags;
+	
+	
     /**
      * @inheritdoc
      */
@@ -111,4 +118,47 @@ class Post extends \yii\db\ActiveRecord
     	}
     	
     }
+    
+
+    
+    /**
+     * 查看当前文章详情， 保存标签数据
+     * {@inheritDoc}
+     * @see \yii\db\BaseActiveRecord::afterFind()
+     */
+    public function afterFind()
+    {
+    	//重写方法时都要调用父类的方法
+    	parent::afterFind();
+    	$this->_oldTags = $this->tags;
+    }
+    
+    /**
+     * 更新文章数据后，更新标签数据
+     * {@inheritDoc}
+     * @see \yii\db\BaseActiveRecord::afterSave()
+     */
+    public function afterSave($insert, $changedAttributes)
+    {
+//     	print_r($this->_oldTags);
+//     	print_r($this->tags);
+    	 
+//     	exit;
+    	 
+    	parent::afterSave($insert, $changedAttributes);
+    	Tag::updateFrequency($this->_oldTags, $this->tags);
+    }
+    
+    /**
+     * 删除文章数据后，删除标签
+     * {@inheritDoc}
+     * @see \yii\db\BaseActiveRecord::afterDelete()
+     */
+    public function afterDelete()
+    {
+    	parent::afterDelete();
+    	Tag::updateFrequency($this->_oldTags, '');
+    }
+    
+    
 }
