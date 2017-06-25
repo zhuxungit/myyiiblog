@@ -12,6 +12,16 @@ use common\models\Post;
  */
 class PostSearch extends Post
 {
+	/**
+	 * 添加authorName属性
+	 * {@inheritDoc}
+	 * @see \yii\db\ActiveRecord::attributes()
+	 */
+	public function attributes()
+	{
+		return array_merge(parent::attributes(),['authorName']);
+	}
+	
     /**
      * @inheritdoc
      */
@@ -19,7 +29,7 @@ class PostSearch extends Post
     {
         return [
             [['id', 'status', 'create_time', 'update_time', 'author_id'], 'integer'],
-            [['title', 'content', 'tags'], 'safe'],
+            [['title', 'content', 'tags', 'authorName'], 'safe'],
         ];
     }
 
@@ -29,7 +39,7 @@ class PostSearch extends Post
     public function scenarios()
     {
         // bypass scenarios() implementation in the parent class
-        return Model::scenarios();
+        return Model::scenarios(); 
     }
 
     /**
@@ -45,10 +55,18 @@ class PostSearch extends Post
 
         // add conditions that should always apply here
 
+        //数据提供者，设置分页排序等
         $dataProvider = new ActiveDataProvider([
             'query' => $query,
+        		'pagination'=>['pageSize'=>10],
+        		'sort'=>['defaultOrder'=>[
+        				'id'=>SORT_DESC	
+        		],
+        				'attributes'=>['id','title']
+        		],
         ]);
-
+ 
+        //快赋值，把表单填写的数据 赋值给当前对象的属性
         $this->load($params);
 
         if (!$this->validate()) {
@@ -57,7 +75,7 @@ class PostSearch extends Post
             return $dataProvider;
         }
 
-        // grid filtering conditions
+        // grid filtering conditions 构造查询条件
         $query->andFilterWhere([
             'id' => $this->id,
             'status' => $this->status,
@@ -70,6 +88,17 @@ class PostSearch extends Post
             ->andFilterWhere(['like', 'content', $this->content])
             ->andFilterWhere(['like', 'tags', $this->tags]);
 
+            //对输入的作者模糊查询
+            $query->join('inner join','Adminuser','post.author_id=Adminuser.id');
+            $query->andFilterWhere(['like','Adminuser.nickname',$this->authorName]);
+            
+            //对作者排序
+            $dataProvider->sort->attributes['authorName']=[
+            		'asc'=>['Adminuser.nickname'=>SORT_ASC],
+            		'desc'=>['Adminuser.nickname'=>SORT_DESC]
+            ];
+            
+            
         return $dataProvider;
     }
 }
